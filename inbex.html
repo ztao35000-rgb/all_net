@@ -1,1 +1,461 @@
 
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection timed out | Error 522</title>
+    <style>
+        :root {
+            --bg-color: #f7f7f7;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --green-working: #72b22b;
+            --red-error: #bd2c00;
+            --border-color: #e5e5e5;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        /* Container for Error View */
+        #errorView {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px 15px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Top Bar Info */
+        .top-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+        }
+
+        /* Status Indicator Pill */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: #eee;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+        }
+
+        .status-pill.checking .status-dot { background: #e6a23c; animation: blink 1s infinite; }
+        .status-pill.online .status-dot { background: var(--green-working); }
+        .status-pill.offline .status-dot { background: var(--red-error); }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Main Error Heading */
+        .error-header {
+            margin-bottom: 35px;
+        }
+
+        .error-title {
+            font-size: 32px;
+            font-weight: 400;
+            color: #404040;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .error-badge {
+            background-color: #e0e0e0;
+            color: #555555;
+            font-size: 13px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .error-subtitle {
+            margin-top: 10px;
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+
+        .error-subtitle a {
+            color: #0051c3;
+            text-decoration: none;
+        }
+
+        /* Node Visual Diagram */
+        .nodes-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 25px 20px;
+            margin-bottom: 35px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .node-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .node-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .node-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .node-status {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .node-status.working { color: var(--green-working); }
+        .node-status.error { color: var(--red-error); }
+
+        .status-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .status-icon.check { background-color: var(--green-working); color: #ffffff; }
+        .status-icon.cross { background-color: var(--red-error); color: #ffffff; }
+
+        .icon { width: 20px; height: 20px; fill: currentColor; }
+
+        /* Content Explanations */
+        .content-section {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 400;
+            color: #333333;
+            margin-bottom: 15px;
+        }
+
+        .section-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .section-text a { color: #0051c3; text-decoration: none; }
+
+        /* Configurator Bar */
+        .config-bar {
+            background: #eef2f5;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .config-bar label { font-size: 13px; font-weight: 600; color: #444; }
+        .config-bar input {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            flex-grow: 1;
+            min-width: 240px;
+        }
+
+        .config-bar button {
+            background: #0051c3;
+            color: #fff;
+            border: none;
+            padding: 7px 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .config-bar button:hover { background: #003d99; }
+
+        /* Footer */
+        .footer-info {
+            text-align: center;
+            font-size: 12px;
+            color: #999999;
+            margin-top: auto;
+            padding: 20px 0 10px;
+        }
+
+        /* Container for Online Frame View (Hidden by default) */
+        #frameView {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background: #ffffff;
+        }
+
+        #appFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Mobile Responsive adjustments */
+        @media (max-width: 640px) {
+            .nodes-container { grid-template-columns: 1fr; gap: 25px; }
+            .error-title { font-size: 24px; }
+            .content-section { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Error View Mode -->
+    <div id="errorView">
+        <div class="container">
+            <!-- Configuration Tools for Target URLs -->
+            <div class="config-bar">
+                <label for="tunnelUrlInput">URL ที่ต้องการตรวจจับ (LocalTunnel):</label>
+                <input type="text" id="tunnelUrlInput" value="https://my-unique-android-app.loca.lt/" placeholder="https://my-unique-android-app.loca.lt/">
+                <button onclick="checkTargetApp()">ตรวจจับสถานะเว็บ</button>
+            </div>
+
+            <!-- Top metadata -->
+            <div class="top-info">
+                <span id="timestamp">2026-08-25 06:17:00 UTC</span>
+                <span class="status-pill checking" id="statusPill">
+                    <span class="status-dot"></span>
+                    <span id="statusText">กำลังตรวจสอบเซิร์ฟเวอร์...</span>
+                </span>
+            </div>
+
+            <!-- Error Heading -->
+            <div class="error-header">
+                <h1 class="error-title">
+                    Connection timed out
+                    <span class="error-badge">Error code 522</span>
+                </h1>
+                <p class="error-subtitle">
+                    Visit <a href="https://github.com/ztao35000-rgb/all_net" target="_blank" rel="noopener">github.com/ztao35000-rgb/all_net</a> for more information.
+                </p>
+            </div>
+
+            <!-- Node Visual Status -->
+            <div class="nodes-container">
+                <!-- Client Node -->
+                <div class="node-card">
+                    <span class="node-label">You</span>
+                    <span class="node-name">Browser</span>
+                    <span class="node-status working">Working</span>
+                    <div class="status-icon check">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    </div>
+                </div>
+
+                <!-- GitHub Node -->
+                <div class="node-card">
+                    <span class="node-label">GitHub Integration</span>
+                    <span class="node-name">GitHub</span>
+                    <span class="node-status working">Working</span>
+                    <div class="status-icon check">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    </div>
+                </div>
+
+                <!-- Host Target Node -->
+                <div class="node-card">
+                    <span class="node-label">Target Host</span>
+                    <span class="node-name" id="displayDomain">ztao35000-rgb.github.io/all_net/</span>
+                    <span class="node-status error">Host Error</span>
+                    <div class="status-icon cross">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanations -->
+            <div class="content-section">
+                <h2 class="section-title">What happened?</h2>
+                <p class="section-text">
+                    The initial connection between the proxy network and the origin web server timed out. As a result, the web page can not be displayed.
+                </p>
+            </div>
+
+            <div class="content-section">
+                <h2 class="section-title">What can I do?</h2>
+                
+                <div class="section-text">
+                    <strong>If you're a visitor of this website:</strong>
+                    <p>Please try again in a few minutes. System is continuously probing for local tunnel availability.</p>
+                </div>
+
+                <div class="section-text" style="margin-top: 15px;">
+                    <strong>If you're the owner of this website:</strong>
+                    <p>Ensure your LocalTunnel process is running on port 5000. Once active, this page will automatically display your live app inside an iframe. <a href="https://github.com/ztao35000-rgb/all_net" target="_blank">Additional troubleshooting information here.</a></p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer-info">
+                <span>Ray ID: <code id="rayId">8a91b2c4e5f6a7b8</code> • Your IP: <a href="#" style="color:#999;">Click to reveal</a> • Performance & security by System Guard</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Application View Mode (Full Screen IFrame) -->
+    <div id="frameView">
+        <iframe id="appFrame" src="" title="Live Application"></iframe>
+    </div>
+
+    <script>
+        let checkInterval = null;
+
+        function setStatus(type, message) {
+            const pill = document.getElementById('statusPill');
+            const text = document.getElementById('statusText');
+            pill.className = `status-pill ${type}`;
+            text.textContent = message;
+        }
+
+        // Check if LocalTunnel or App Target is active
+        async function checkTargetApp() {
+            const targetUrl = document.getElementById('tunnelUrlInput').value.trim();
+            if (!targetUrl) return;
+
+            setStatus('checking', 'กำลังตรวจสอบเซิร์ฟเวอร์...');
+
+            try {
+                // Perform no-cors fetch test to detect if server responds
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+                await fetch(targetUrl, {
+                    method: 'GET',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                // If fetch succeeded (didn't throw error), server is ONLINE
+                showLiveIframe(targetUrl);
+            } catch (err) {
+                // If fetch failed or timed out, server is OFFLINE
+                showErrorView();
+            }
+        }
+
+        function showLiveIframe(url) {
+            setStatus('online', 'เซิร์ฟเวอร์ออนไลน์ - กำลังโหลด...');
+            const errorView = document.getElementById('errorView');
+            const frameView = document.getElementById('frameView');
+            const appFrame = document.getElementById('appFrame');
+
+            if (appFrame.src !== url) {
+                appFrame.src = url;
+            }
+
+            errorView.style.display = 'none';
+            frameView.style.display = 'block';
+        }
+
+        function showErrorView() {
+            setStatus('offline', 'ออฟไลน์ (Error 522)');
+            const errorView = document.getElementById('errorView');
+            const frameView = document.getElementById('frameView');
+            const appFrame = document.getElementById('appFrame');
+
+            appFrame.src = '';
+            frameView.style.display = 'none';
+            errorView.style.display = 'flex';
+        }
+
+        // Generate dynamic timestamp & Ray ID
+        function initMetadata() {
+            const now = new Date();
+            const utcString = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            document.getElementById('timestamp').textContent = utcString;
+
+            const chars = '0123456789abcdef';
+            let rayId = '';
+            for (let i = 0; i < 16; i++) {
+                rayId += chars[Math.floor(Math.random() * chars.length)];
+            }
+            document.getElementById('rayId').textContent = rayId;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initMetadata();
+            // Start checking immediately and loop every 8 seconds
+            checkTargetApp();
+            checkInterval = setInterval(checkTargetApp, 8000);
+        });
+    </script>
+</body>
+</html>
+
