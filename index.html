@@ -28,6 +28,7 @@
             font-family: var(--font-family);
             background-color: var(--bg-color);
             color: var(--text-main);
+            overflow-x: hidden;
         }
 
         /* Container for Error View */
@@ -246,7 +247,17 @@
             padding: 20px 0 10px;
         }
 
-        /* Container for Online Frame View (Hidden by default) */
+        /* Mode Switcher Option */
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        /* Container for Online Frame View */
         #frameView {
             display: none;
             width: 100vw;
@@ -257,6 +268,37 @@
             z-index: 9999;
             background: #ffffff;
         }
+
+        /* Floating Controls Bar for iframe Mode */
+        .frame-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+            display: flex;
+            gap: 8px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .frame-btn {
+            background: #ffffff;
+            color: #333;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .frame-btn:hover { background: #e2e2e2; }
 
         #appFrame {
             width: 100%;
@@ -282,11 +324,16 @@
                 <label for="tunnelUrlInput">URL ที่ต้องการตรวจจับ (LocalTunnel):</label>
                 <input type="text" id="tunnelUrlInput" value="https://my-unique-android-app.loca.lt/" placeholder="https://my-unique-android-app.loca.lt/">
                 <button onclick="checkTargetApp()">ตรวจจับสถานะเว็บ</button>
+                
+                <div class="mode-option">
+                    <input type="checkbox" id="directRedirectToggle">
+                    <label for="directRedirectToggle">เมื่อออนไลน์ ให้เปลี่ยนหน้าเว็บโดยตรง (ไม่ใช้ iframe บล็อกเต็มจอ)</label>
+                </div>
             </div>
 
             <!-- Top metadata -->
             <div class="top-info">
-                <span id="timestamp">2026-08-25 06:17:00 UTC</span>
+                <span id="timestamp">2026-08-25 07:17:00 UTC</span>
                 <span class="status-pill checking" id="statusPill">
                     <span class="status-dot"></span>
                     <span id="statusText">กำลังตรวจสอบเซิร์ฟเวอร์...</span>
@@ -366,9 +413,21 @@
         </div>
     </div>
 
-    <!-- Live Application View Mode (Full Screen IFrame) -->
+    <!-- Live Application View Mode (Full Screen IFrame with Full permissions) -->
     <div id="frameView">
-        <iframe id="appFrame" src="" title="Live Application"></iframe>
+        <div class="frame-controls">
+            <button class="frame-btn" onclick="openDirectLink()">🌐 เปิดหน้าจริงแบบไม่ใช้ iframe</button>
+            <button class="frame-btn" onclick="requestNativeFullscreen()">⛶ กดเต็มจอภาพ</button>
+        </div>
+        <!-- Allowed full permissions for iframe including fullscreen -->
+        <iframe id="appFrame" 
+                src="" 
+                title="Live Application" 
+                allow="fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen="true" 
+                webkitallowfullscreen="true" 
+                mozallowfullscreen="true">
+        </iframe>
     </div>
 
     <script>
@@ -381,15 +440,35 @@
             text.textContent = message;
         }
 
+        // Open target URL directly to bypass any iframe restrictions
+        function openDirectLink() {
+            const targetUrl = document.getElementById('tunnelUrlInput').value.trim();
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // Trigger native Fullscreen API on frame container
+        function requestNativeFullscreen() {
+            const frameView = document.getElementById('frameView');
+            if (frameView.requestFullscreen) {
+                frameView.requestFullscreen();
+            } else if (frameView.webkitRequestFullscreen) {
+                frameView.webkitRequestFullscreen();
+            } else if (frameView.msRequestFullscreen) {
+                frameView.msRequestFullscreen();
+            }
+        }
+
         // Check if LocalTunnel or App Target is active
         async function checkTargetApp() {
             const targetUrl = document.getElementById('tunnelUrlInput').value.trim();
+            const isDirectRedirect = document.getElementById('directRedirectToggle').checked;
             if (!targetUrl) return;
 
             setStatus('checking', 'กำลังตรวจสอบเซิร์ฟเวอร์...');
 
             try {
-                // Perform no-cors fetch test to detect if server responds
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 4000);
 
@@ -402,10 +481,15 @@
 
                 clearTimeout(timeoutId);
 
-                // If fetch succeeded (didn't throw error), server is ONLINE
+                // If Direct Redirect option is enabled, jump directly
+                if (isDirectRedirect) {
+                    window.location.href = targetUrl;
+                    return;
+                }
+
+                // Otherwise show full-permission iframe
                 showLiveIframe(targetUrl);
             } catch (err) {
-                // If fetch failed or timed out, server is OFFLINE
                 showErrorView();
             }
         }
@@ -435,7 +519,6 @@
             errorView.style.display = 'flex';
         }
 
-        // Generate dynamic timestamp & Ray ID
         function initMetadata() {
             const now = new Date();
             const utcString = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
@@ -451,11 +534,9 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initMetadata();
-            // Start checking immediately and loop every 8 seconds
             checkTargetApp();
             checkInterval = setInterval(checkTargetApp, 8000);
         });
     </script>
 </body>
 </html>
-
